@@ -5,6 +5,9 @@ import clientContext from "../context/clientContext";
 
 const Patient: React.FC = () => {
 	const [patient, setPatient] = useState<R4.IPatient | undefined>();
+	const [practitioner, setPractitioner] = useState<
+		R4.IPractitioner | undefined
+	>();
 	const [loading, setLoading] = useState<boolean>(false);
 	const [documents, setDocuments] = useState<R4.IBundle | undefined>();
 	const [error, setError] = useState<string | undefined>(undefined);
@@ -17,12 +20,14 @@ const Patient: React.FC = () => {
 		if (client) {
 			setLoading(true);
 			async function fetchPatient() {
-				await client.request({
-					url: `/Patient/${id}`,
-					headers: {
-						"dips-subscription-key": import.meta.env.VITE_DIPS_SUBSCRIPTION_KEY,
-					},
-				})
+				await client
+					.request({
+						url: `/Patient/${id}`,
+						headers: {
+							"dips-subscription-key": import.meta.env
+								.VITE_DIPS_SUBSCRIPTION_KEY,
+						},
+					})
 					.then((patient) => {
 						setLoading(false);
 						setPatient(patient);
@@ -41,12 +46,14 @@ const Patient: React.FC = () => {
 	useEffect(() => {
 		if (patient?.id) {
 			async function fetchDocuments() {
-				await client.request({
-					url: `/DocumentReference?patient=${patient?.id}`,
-					headers: {
-						"dips-subscription-key": import.meta.env.VITE_DIPS_SUBSCRIPTION_KEY,
-					},
-				})
+				await client
+					.request({
+						url: `/DocumentReference?patient=${patient?.id}`,
+						headers: {
+							"dips-subscription-key": import.meta.env
+								.VITE_DIPS_SUBSCRIPTION_KEY,
+						},
+					})
 					.then((documents) => {
 						setLoading(false);
 						setDocuments(documents);
@@ -58,6 +65,34 @@ const Patient: React.FC = () => {
 					});
 			}
 			fetchDocuments();
+		}
+	}, [patient]);
+
+	useEffect(() => {
+		if (patient?.id) {
+			setLoading(true);
+			async function fetchPractitioner() {
+				await client
+					.request({
+						url: `/PractitionerRole/${
+							patient?.generalPractitioner![0].reference?.split("/")[1]
+						}`,
+						headers: {
+							"dips-subscription-key": import.meta.env
+								.VITE_DIPS_SUBSCRIPTION_KEY,
+						},
+					})
+					.then((practitioner) => {
+						setLoading(false);
+						setPractitioner(practitioner);
+					})
+					.catch((error) => {
+						setLoading(false);
+						setError(error);
+						console.error;
+					});
+			}
+			fetchPractitioner();
 		}
 	}, [patient]);
 
@@ -87,8 +122,7 @@ const Patient: React.FC = () => {
 			<div className="wrapper">
 				<div className="blue-info-card">
 					<div className="text-wrapper">
-						<i className="person-icon">
-						</i>
+						<i className="person-icon"></i>
 						<p className="card-name">
 							{patient?.name![0].given} {patient?.name![0].family}
 						</p>
@@ -100,12 +134,22 @@ const Patient: React.FC = () => {
 				</div>
 				<div className="blue-info-card">
 					<div className="text-wrapper">
-						<i className="document-icon">
-						</i>
+						<i className="document-icon"></i>
 						<p className="card-name">Documents</p>
 						<p>
 							{patient?.name![0].given} {patient?.name![0].family} has{" "}
 							{documents?.total ? documents?.total : "0"} documents
+						</p>
+					</div>
+				</div>
+				<div className="blue-info-card">
+					<div className="text-wrapper">
+						<i className="doctor-icon"></i>
+						<p className="card-name">Lege</p>
+						<p>
+							{patient?.name![0].given} {patient?.name![0].family}s doctor is{" "}
+							{practitioner?.contained![0]?.name[0].family}{" "}
+							{practitioner?.contained![0]?.name[0].given[0]}
 						</p>
 					</div>
 				</div>
